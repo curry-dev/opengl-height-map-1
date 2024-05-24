@@ -1,4 +1,4 @@
-# opengl-height-map-1
+# HEIGHT MAP USING OPENGL
 
 > [!NOTE]
 > This repository holds the completed result of my project but the source code.
