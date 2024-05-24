@@ -7,21 +7,30 @@
 
 
 ### An Overview
+
 Height fields may be found in many applications of computer graphics. They are used to represent terrain in video games and simulations, and also often utilized to represent data in three dimensions. This assignment asks you to create a height field based on the data from an image which the user specifies at the command line, and to allow the user to manipulate the height field in three dimensions by rotating, translating, or scaling it. You also have to implement a vertex shader that performs smoothing of the geometry, and re-adjusts the geometry color. After the completion of your program, you will use it to create an animation. You will program the assignment using OpenGL's core profile.
 
 This assignment is intended as a hands-on introduction to OpenGL and programming in three dimensions. It teaches the OpenGL's core profile and shader-based programming. The provided starter gives the functionality to initialize GLUT, read and write a JPEG image, handle mouse and keyboard input, and display one triangle to the screen. You must write code to handle camera transformations, transform the landscape (translate/rotate/scale), and render the heightfield. You must also write a shader to perform geometry smoothing and re-color the terrain accordingly. Please see the OpenGL Programming Guide for information, or OpenGL.org.
 
+
+
 ### Background Information
+
 A height field is a visual representation of a function which takes as input a two-dimensional point and returns a scalar value ("height") as output.
 
 Rendering a height field over arbitrary coordinates is somewhat tricky--we will simplify the problem by making our function piece-wise. Visually, the domain of our function is a two-dimensional grid of points, and a height value is defined at each point. We can render this data using only a point at each defined value, or use it to approximate a surface by connecting the points with triangles in 3D.
 
 You will be using image data from a grayscale JPEG file to create your height field, such that the two dimensions of the grid correspond to the two dimensions of the image and the height value is a function of the image grayscale level. Since you will be working with grayscale image, the bytes per pixel (i.e., ImageIO::getBytesPerPixel) is always 1 and you don't have to worry about the case where the bytes per pixel is 3 (i.e., RGB images).
 
+
+
 ### Render Points, Lines and Triangles
 Your program needs to render the height field as points (when the key "1" is pressed on the keyboard), lines ("wireframe"; key "2"), or solid triangles (key "3"). The points, lines and solid triangles must be modeled using GL_POINTS, GL_LINES, GL_TRIANGLES, or their "LOOP" or "STRIP" variants.
 
+
+
 ### Vertex Shader Requirement
+
 You should write a vertex shader that provides two rendering modes.
 
 The first mode -- keys "1", "2", "3"
@@ -29,7 +38,7 @@ In the first mode, simply transform the vertex with the modelview and projection
 The second mode -- key "4"
 In the second mode (key "4"), do not scale the terrain height on the CPU; the height should equal 1.0 * heightmapImage->getPixel(i, j, 0) / 255.0f . In this mode, you should change the vertex position to the average position of itself and the four neighboring vertices -- do this in the vertex shader. Specifically, replace p_center with (p_center + p_left + p_right + p_down + p_up) / 5 (see image). This will have the effect of smoothening the terrain (the effect is most visible at low image resolutions, e.g., 128 x 128).
 
-![]()
+![](/smoothen.jpg)
 
 Furthermore, you should change the vertex color and height, also in the vertex shader, according to the formulas:
 
@@ -38,9 +47,12 @@ y <--  scale * pow(y, exponent),
 
 where scale and exponent are two constants. These constants are shader uniform variables and must be provided to your shader from the CPU. You can use the provided helper function PipelineProgram::SetUniformVariablef to do this. In your program on the CPU, you should bind the keys as follows:
 
-+    ... multiply the current "scale" by 2x
--    ... divide the current "scale" by 2x
+\+    ... multiply the current "scale" by 2x
+
+\-    ... divide the current "scale" by 2x
+
 9    ... multiply the current "exponent" by 2x
+
 0    ... divide the current "exponent" by 2x
 
 The initial values for "scale" and "exponent" should both be 1. Then, when user presses those keys, you should upload the new variable value to the GPU. The variables "scale" and "exponent" are only needed when using key "4", i.e., in the second mode -- you don't need them when using keys "1", "2", "3". In mode "4", you only need to support triangle rendering; you do not need to draw points or lines in this mode.
@@ -50,3 +62,21 @@ Finally, in the vertex shader, you should then transform the resulting vertex po
 The positions of the four neighboring vertices should be passed into the vertex shader as additional attributes, in the same way as vertex position and color. In order to accommodate this, you should create additional VBOs. For example, one approach is to create 4 VBOs of 3-floats: position of the left vertex, right vertex, up vertex, down vertex. Note that these positions include the height of the vertex as one of its coordinates. If the position of the right vertex is off the image (this will happen on the image boundary), set the "position" of the right vertex to the position of the center vertex. Perform the equivalent operations also for the up/down vertices along the top and bottom edges of the image. The "scale" and "exponent" should be made available in the shader as uniform variables, as explained above.
 
 You should write one vertex shader that satisfies the above requirements. In order to switch between the two modes, you should create a uniform variable "uniform int mode" in the vertex shader, and upload it to the GPU using PipelineProgram::SetUniformVariablei. When the user presses keys "1", "2" or "3", mode should be set to 0, and when the user presses key "4", mode should be set to 1. When mode=0, the vertex shader should execute the first mode described above. When mode=1, the vertex shader should execute the second mode (smoothen the vertex position and scale/exponentiate the terrain). You can achieve this using an "if" statement in the vertex shader.
+
+
+
+### Your program must:
+
+Use the OpenGL core profile, version 3.2 or higher, and shader-based OpenGL. The following are not allowed: compatibility profile, commands that were deprecated and/or removed in OpenGL version 3.2 or earlier, and the fixed-function pipeline. Exact specification is available here. If in doubt, please ask the instructor/TA. Submissions that do not follow these guidelines will receive zero points.
+Handle at least a 256x256 image for your height field at interactive frame rates (window size of 1280x720). Height field transformations should run smoothly.
+Be able to render the height field as points (key "1"), lines ("wireframe"; key "2"), or solid triangles (key "3"), as described in the "Render Points, Lines and Triangles" above.
+Render a smoothened height field (key "4"), colored with a smoothened color, as described in the "Vertex Shader Requirement" above.
+Scale and exponentiate the height when using key "4", as described in the "Vertex Shader Requirement" above.
+Render as a perspective view, utilizing GL's depth buffer for hidden surface removal.
+Use input from the mouse to rotate the heightfield using OpenGLMatrix::Rotate.
+Use input from the mouse to move the heightfield using OpenGLMatrix::Translate.
+Use input from the mouse to change the dimensions of the heightfield using OpenGLMatrix::Scale.
+Color the vertices using a color that is linearly proportional to the height (with higher values being brighter; color cannot be all black).
+Be reasonably commented and written in an understandable manner--we will read your code.
+Be submitted along with JPEG frames for the required animation (see below).
+Be submitted along with a readme file documenting your program's features, describing any extra credit you have done, and anything else that you may want to bring to our attention.
